@@ -1,0 +1,139 @@
+        <div id="page-wrapper">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                      <!--   <h3 class="page-header"> Peraturan </h3> -->
+
+                    </div>
+
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-12">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                           Peraturan
+                        </div>
+                        <div class="panel-body">
+
+
+<?php
+ include "config/koneksi.php";
+ include "config/library.php";
+
+       if(isset($_POST['submit'])){
+			$pilihan=$_POST["pilihan"];
+			$id_soal=$_POST["id"];
+			$jumlah=$_POST['jumlah'];
+      $kode=$_POST['kode_asisten'];
+      $id_modul = $_POST['id_modul'];
+
+			$score=0;
+			$benar=0;
+			$salah=0;
+			$kosong=0;
+
+			for ($i=0;$i<$jumlah;$i++){
+				//id nomor soal
+				$nomor=$id_soal[$i];
+
+				//jika user tidak memilih jawaban
+				if (empty($pilihan[$nomor])){
+					$kosong++;
+				}else{
+					//jawaban dari user
+					$jawaban=$pilihan[$nomor];
+
+					//cocokan jawaban user dengan jawaban di database
+					$query=mysqli_query($config,"select * from tbl_soal where id_soal='$nomor' and knc_jawaban='$jawaban'");
+
+					$cek=mysqli_num_rows($query);
+
+					if($cek){
+						//jika jawaban cocok (benar)
+						$benar++;
+					}else{
+						//jika salah
+						$salah++;
+					}
+
+				}
+				/*RUMUS
+				Jika anda ingin mendapatkan Nilai 100, berapapun jumlah soal yang ditampilkan
+				hasil= 100 / jumlah soal * jawaban yang benar
+				*/
+
+				$result=mysqli_query($config,"select * from tbl_soal WHERE aktif='Y' AND id_modul = $id_modul");
+				$jumlah_soal=mysqli_num_rows($result);
+				$score = ($benar/$jumlah_soal)*100;
+				$hasil = number_format($score,1);
+			}
+		}
+		//Lakukan Pengecekan  Data  dalam Database
+	   $cek=mysqli_num_rows(mysqli_query("SELECT id_user FROM tbl_nilai WHERE id_user='$_SESSION[iduser]'"));
+		if ($cek < 1) {
+		//Pemberian kondisi lulus/ tidak lulus
+		 $qry2=mysqli_query($config,"SELECT * FROM tbl_nilai, tbl_modulprak where tbl_nilai.id_modul = tbl_modulprak.id_modul AND tbl_nilai.id_modul='$id_modul'");
+		 $q2=mysqli_fetch_array($qry2);
+		if($q2['matkul'] == "RPB"){
+		 if ($hasil >= 60) {
+		//Lakukan Penyimpanan Kedalam Database
+				$iduser= ucwords($_SESSION['iduser']);
+				mysqli_query($config,"INSERT INTO tbl_nilai (id_user,benar,salah,kosong,score,tanggal,keterangan,kode_asisten,id_modul) Values ('$iduser','$benar','$salah','$kosong','$hasil','$tgl_sekarang','Lulus','$kode','$id_modul')");
+		}else {
+		//Lakukan Penyimpanan Kedalam Database
+				$iduser= ucwords($_SESSION['iduser']);
+				mysqli_query($config,"INSERT INTO tbl_nilai (id_user,benar,salah,kosong,score,tanggal,keterangan,kode_asisten,id_modul) Values ('$iduser','$benar','$salah','$kosong','$hasil','$tgl_sekarang','Tidak Lulus','$kode','$id_modul')");
+		}
+  } else{
+    if ($hasil >= 50) {
+   //Lakukan Penyimpanan Kedalam Database
+       $iduser= ucwords($_SESSION['iduser']);
+       mysqli_query($config,"INSERT INTO tbl_nilai (id_user,benar,salah,kosong,score,tanggal,keterangan,kode_asisten,id_modul) Values ('$iduser','$benar','$salah','$kosong','$hasil','$tgl_sekarang','Lulus','$kode','$id_modul')");
+   }else {
+   //Lakukan Penyimpanan Kedalam Database
+       $iduser= ucwords($_SESSION['iduser']);
+       mysqli_query($config,"INSERT INTO tbl_nilai (id_user,benar,salah,kosong,score,tanggal,keterangan,kode_asisten,id_modul) Values ('$iduser','$benar','$salah','$kosong','$hasil','$tgl_sekarang','Tidak Lulus','$kode','$id_modul')");
+   }
+  }
+	}
+
+		//Menampilkan Hasil Ujian Kompetensi
+		$username=  ucwords($_SESSION['username']);
+		echo "<h3 style='border:0';>Selamat <u>$username</u> Sudah Selesai Dalam Mengerjakan Tes</h3>";
+		 echo "<br><br><br><div align='center'>
+		 <table><tr><th colspan=3>Hasil Tes Anda</th></tr>
+		  <tr><td><b>Nilai anda            </td><td>: $hasil</b></td>";
+		 $qry=mysqli_query($config,"SELECT * FROM tbl_nilai, tbl_modulprak where tbl_nilai.id_modul = tbl_modulprak.id_modul");
+		 $q=mysqli_fetch_array($qry);
+     if ($q['matkul'] == "RPB") {
+       // code...
+		 if ($q['score'] >= 60) {
+		 	echo "<td rowspan='4'><h1>Lulus</h1></td></tr>";
+		 }else {
+		 	echo "<td rowspan='4'><h1>Tidak Lulus</h1></td></tr>";
+		 }
+   } else {
+     if ($q['score'] >= 50) {
+      echo "<td rowspan='4'><h1>Lulus</h1></td></tr>";
+     }else {
+      echo "<td rowspan='4'><h1>Tidak Lulus</h1></td></tr>";
+     }
+   }
+	  echo "
+		 <tr><td>Jumlah Jawaban Benar</td><td> : $benar </td></tr>
+		 <tr><td>Jumlah Jawaban Salah</td><td> : $salah</td></tr>
+		 <tr><td>Jumlah Jawaban Kosong</td><td>: $kosong</td></tr>
+		</table></div>";
+		?>
+                        </div>
+                        <div class="panel-footer">
+
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <!-- /.row -->
+            </div>
+            <!-- /.container-fluid -->
+        </div>
